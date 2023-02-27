@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavcodec/codec.h>
@@ -12,27 +13,28 @@ extern "C" {
 #include <libavutil/channel_layout.h>
 }
 
+
 class SLcompressor {
 public:
     SLcompressor();
     ~SLcompressor();
 
     void open_input_media(const char* filename);
-    void find_media_stream();
-    void open_decoder_context();
-    void set_input_stream();
-    void open_encoder_context();
-    void copy_audio_parameters();
+    void open_decoder();
+    void open_encoder();
     void write_file_header();
     void read_frames();
-    void close_resources();
-
 private:
-    void alloc_output_context();
-    void set_encoder_properties();
+    void copy_audio_parameters();
+    void alloc_output_ctx();
+    void setup_encoder_properties();
+    void find_media_stream();
+    void close_resources();
+    void setup_input_streams();
 
-    AVFormatContext* input_context;
-    AVFormatContext* output_context;
+
+    AVFormatContext* input_ctx;
+    AVFormatContext* output_ctx;
 
     const AVCodec* video_decoder;
     AVCodecContext* video_decoder_context;
