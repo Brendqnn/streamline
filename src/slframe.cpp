@@ -1,6 +1,5 @@
 #include "slframe.h"
 #include "slcompressor.h"
-#include "slinput.h"
 
 
 bool App::OnInit() {
@@ -16,15 +15,15 @@ bool App::OnInit() {
 }
 
 void App::onButtonClicked(wxCommandEvent& event) {
-    SLinput input_;
-    SLcompressor compress_;
+    
+    SLcompressor my_compressor("res/indigo.mp4");
 
-    input_.open_media_input();
-    input_.open_decoder_ctx();
-    input_.open_encoder_ctx();
-    input_.write_file_header();
+    my_compressor.open_media_input();
+    my_compressor.open_decoder_ctx();
+    my_compressor.open_encoder_ctx();
+    my_compressor.write_file_header();
 
-    compress_.start_compress();
+    my_compressor.start_compress();
 }
 
 wxIMPLEMENT_APP(App);

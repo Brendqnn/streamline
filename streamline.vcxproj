@@ -138,12 +138,10 @@
     <ClCompile Include="src\slframe.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\slcompressor.cpp" />
-    <ClCompile Include="src\slinput.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\slcompressor.h" />
     <ClInclude Include="include\slframe.h" />
-    <ClInclude Include="include\slinput.h" />
+    <ClInclude Include="include\slcompressor.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
