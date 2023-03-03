@@ -23,7 +23,11 @@ SLcompressor::SLcompressor(const char* filename)
 }
 	
 SLcompressor::~SLcompressor() {
-
+    av_frame_free(&frame);
+    avcodec_free_context(&video_decoder_ctx);
+    avcodec_free_context(&video_encoder_ctx);
+    avformat_close_input(&input_ctx);
+    avformat_free_context(output_ctx);
 }
 
 void SLcompressor::open_media_input() {

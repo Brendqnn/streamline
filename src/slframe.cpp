@@ -1,4 +1,5 @@
 #include "slframe.h"
+#include <memory.h>
 #include "slcompressor.h"
 
 
@@ -16,14 +17,13 @@ bool App::OnInit() {
 
 void App::onButtonClicked(wxCommandEvent& event) {
     
-    SLcompressor my_compressor("res/indigo.mp4");
-
-    my_compressor.open_media_input();
-    my_compressor.open_decoder_ctx();
-    my_compressor.open_encoder_ctx();
-    my_compressor.write_file_header();
-
-    my_compressor.start_compress();
+    std::shared_ptr<SLcompressor> my_compressor = std::make_shared<SLcompressor>("res/indigo.mp4");
+    my_compressor->open_media_input();
+    my_compressor->open_decoder_ctx();
+    my_compressor->open_encoder_ctx();
+    my_compressor->write_file_header();
+    my_compressor->start_compress();
+    
 }
 
 wxIMPLEMENT_APP(App);
