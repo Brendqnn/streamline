@@ -363,9 +363,7 @@ MigrationBackup/
 FodyWeavers.xsd
 
 
-.mp4
-.mp3
-.sln
-.vcxproj
+*.mp4
+*.mp3
 
 res/*
