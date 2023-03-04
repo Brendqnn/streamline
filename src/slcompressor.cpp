@@ -19,9 +19,9 @@ SLcompressor::SLcompressor(const char* filename)
     , packet()
     , filename(filename)
 {
-    
+
 }
-	
+
 SLcompressor::~SLcompressor() {
     av_frame_free(&frame);
     avcodec_free_context(&video_decoder_ctx);
@@ -31,10 +31,10 @@ SLcompressor::~SLcompressor() {
 }
 
 void SLcompressor::open_media_input() {
-	if (avformat_open_input(&input_ctx, filename, nullptr, nullptr) < 0) {
-		std::cout << "could not find input media\n";
-		avformat_close_input(&input_ctx);
-	}
+    if (avformat_open_input(&input_ctx, filename, nullptr, nullptr) < 0) {
+        std::cout << "could not find input media\n";
+        avformat_close_input(&input_ctx);
+    }
     find_media_streams();
     setup_input_streams();
 }
@@ -63,6 +63,7 @@ void SLcompressor::find_media_streams() {
 void SLcompressor::setup_input_streams() {
     input_video_stream = input_ctx->streams[video_stream_idx];
     input_audio_stream = input_ctx->streams[audio_stream_idx];
+    input_video_framerate = input_video_stream->r_frame_rate;
 }
 
 void SLcompressor::open_decoder_ctx() {
@@ -82,7 +83,7 @@ void SLcompressor::open_decoder_ctx() {
 }
 
 void SLcompressor::set_encoder_properties() {
-    video_encoder_ctx->bit_rate = video_decoder_ctx->bit_rate;
+    video_encoder_ctx->bit_rate = 8000000;
     video_encoder_ctx->width = video_decoder_ctx->width;
     video_encoder_ctx->height = video_decoder_ctx->height;
     video_encoder_ctx->pix_fmt = video_encoder->pix_fmts[0];
@@ -111,7 +112,7 @@ void SLcompressor::alloc_output_ctx() {
 }
 
 void SLcompressor::open_encoder_ctx() {
-    video_encoder = avcodec_find_encoder(AV_CODEC_ID_H265);
+    video_encoder = avcodec_find_encoder(AV_CODEC_ID_HEVC);
     video_encoder_ctx = avcodec_alloc_context3(video_encoder);
     set_encoder_properties();
     if (avcodec_open2(video_encoder_ctx, video_encoder, nullptr) < 0) {
@@ -190,5 +191,3 @@ void SLcompressor::start_compress() {
     }
     av_write_trailer(output_ctx);
 }
-
-
