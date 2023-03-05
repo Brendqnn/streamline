@@ -23,11 +23,21 @@ SLcompressor::SLcompressor(const char* filename)
 }
 
 SLcompressor::~SLcompressor() {
-    av_frame_free(&frame);
-    avcodec_free_context(&video_decoder_ctx);
-    avcodec_free_context(&video_encoder_ctx);
-    avformat_close_input(&input_ctx);
-    avformat_free_context(output_ctx);
+    if (frame != nullptr) {
+        av_frame_free(&frame);
+    }
+    if (video_decoder_ctx != nullptr) {
+        avcodec_free_context(&video_decoder_ctx);
+    }
+    if (video_encoder_ctx != nullptr) {
+        avcodec_free_context(&video_encoder_ctx);
+    }
+    if (input_ctx) {
+        avformat_close_input(&input_ctx);
+    }
+    if (output_ctx != nullptr) {
+        avformat_free_context(output_ctx);
+    }
 }
 
 void SLcompressor::open_media_input() {

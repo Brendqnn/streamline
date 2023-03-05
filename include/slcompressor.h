@@ -1,15 +1,11 @@
 #pragma once
+#include <thread>
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavcodec/codec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
 #include <libswscale/swscale.h>
-#include <libavutil/audio_fifo.h>
-#include <libavutil/samplefmt.h>
-#include <libavutil/opt.h>
-#include <libswresample/swresample.h>
-#include <libavutil/channel_layout.h>
 }
 
 class SLcompressor {
@@ -25,6 +21,8 @@ public:
 
 	const AVCodec* video_encoder;
 	AVCodecContext* video_encoder_ctx;
+
+	const char* filename;
 
 	int video_stream_idx;
 	int audio_stream_idx;
@@ -52,5 +50,4 @@ private:
 	void find_media_streams();
 	void setup_input_streams();
 
-	const char* filename;
 };
