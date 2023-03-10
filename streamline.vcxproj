@@ -135,13 +135,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\slframe.cpp" />
+    <ClCompile Include="src\sl_codec.cpp" />
+    <ClCompile Include="src\sl_frame.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\slcompressor.cpp" />
+    <ClCompile Include="src\sl_compressor.cpp" />
+    <ClCompile Include="src\sl_iomanager.cpp" />
+    <ClCompile Include="src\sl_stream.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\slframe.h" />
-    <ClInclude Include="include\slcompressor.h" />
+    <ClInclude Include="include\sl_frame.h" />
+    <ClInclude Include="include\sl_compressor.h" />
+    <ClInclude Include="include\sl_iomanger.h" />
+    <ClInclude Include="include\sl_codec.h" />
+    <ClInclude Include="include\sl_queue.h" />
+    <ClInclude Include="include\sl_stream.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
