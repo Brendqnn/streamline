@@ -13,7 +13,8 @@ public:
 
     void onButtonClicked(wxCommandEvent& event);
 private:
-    std::shared_ptr<SLcompressor> _compress = std::make_shared<SLcompressor>();
+    std::shared_ptr<SLcompressor> _compress;
+    std::thread t_compress;
     void compress();
     
 };

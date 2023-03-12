@@ -18,6 +18,6 @@ public:
 
 	void open_media_input();
 	void write_file_header();
+	void alloc_output_ctx();
 private:
-	
 };

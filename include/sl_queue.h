@@ -6,11 +6,5 @@ public:
 	SLqueue();
 	~SLqueue();
 
-	const char* filename;
-
-	void get_file_info();
-
-
 private:
-
 };

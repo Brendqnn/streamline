@@ -10,9 +10,9 @@ SLstream::SLstream()
     , output_video_stream(nullptr)
     , output_audio_stream(nullptr)
     , input_video_framerate({ 0, 0 })
-    
+
 {
-    
+
 }
 
 SLstream::~SLstream() {
@@ -41,7 +41,4 @@ void SLstream::setup_input_streams(std::shared_ptr<SLiomanager> io_ctx) {
     input_audio_stream = io_ctx->input_ctx->streams[audio_stream_idx];
     input_video_framerate = input_video_stream->r_frame_rate;
 }
-
-
-
 

@@ -6,7 +6,6 @@ extern "C" {
 	#include <libavcodec/codec.h>
 	#include <libavformat/avformat.h>
 	#include <libavutil/avutil.h>
-	#include <libswscale/swscale.h>
 }
 
 class SLstream {
@@ -26,7 +25,6 @@ public:
 	void find_media_streams(std::shared_ptr<SLiomanager> io_ctx);
 	void setup_input_streams(std::shared_ptr<SLiomanager> io_ctx);
 
-	std::shared_ptr<SLiomanager> io_ctx;
 private:
-	
+	std::shared_ptr<SLiomanager> io_ctx;
 };

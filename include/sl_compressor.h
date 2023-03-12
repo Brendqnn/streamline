@@ -22,10 +22,10 @@ public:
 
 	void start_compress();
 	void setup_ctx();
-	
+
 private:
 	std::shared_ptr<SLiomanager> io_ctx;
-	std::shared_ptr<SLcodec> codec_ctx;
-	std::shared_ptr<SLstream> stream_ctx;
+	std::shared_ptr<SLcodec> c_ctx;
+	std::shared_ptr<SLstream> s_ctx;
 
 };
