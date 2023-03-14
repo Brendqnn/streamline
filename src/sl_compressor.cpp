@@ -5,8 +5,12 @@ SLcompressor::SLcompressor()
     : io_ctx(std::make_shared<SLiomanager>())
     , c_ctx(std::make_shared<SLcodec>())
     , s_ctx(std::make_shared<SLstream>())
+    , q(std::make_shared<SLqueue>())
+    , compress_state(false)
     , frame(av_frame_alloc())
     , packet()
+    , str(str)
+    , filename(filename)
 {
 
 }
@@ -16,7 +20,8 @@ SLcompressor::~SLcompressor() {
 }
 
 void SLcompressor::setup_ctx() {
-    io_ctx->open_media_input();
+    filename = q->get_file_info();
+    io_ctx->open_media_input(filename);
     s_ctx->find_media_streams(io_ctx);
     s_ctx->setup_input_streams(io_ctx);
     c_ctx->open_decoder_ctx(s_ctx);
@@ -24,9 +29,7 @@ void SLcompressor::setup_ctx() {
     io_ctx->alloc_output_ctx();
     c_ctx->stream_to_output(io_ctx, s_ctx);
     io_ctx->write_file_header();
-
 }
-
 
 void SLcompressor::start_compress() {
     av_frame_get_buffer(frame, 0);

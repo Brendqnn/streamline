@@ -4,7 +4,9 @@
 
 SLframe::SLframe()
     : _compress(std::make_shared<SLcompressor>())
-{}
+{
+    
+}
     
 
 SLframe::~SLframe() {}
@@ -30,7 +32,6 @@ void SLframe::compress() {
     _compress->setup_ctx();
     _compress->start_compress();
     _compress.reset();
-    
 }
 
 wxIMPLEMENT_APP(SLframe);

@@ -140,6 +140,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\sl_compressor.cpp" />
     <ClCompile Include="src\sl_iomanager.cpp" />
+    <ClCompile Include="src\sl_queue.cpp" />
     <ClCompile Include="src\sl_stream.cpp" />
   </ItemGroup>
   <ItemGroup>

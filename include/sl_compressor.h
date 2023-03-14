@@ -3,6 +3,7 @@
 #include "sl_codec.h"
 #include "sl_iomanger.h"
 #include "sl_stream.h"
+#include <sl_queue.h>
 extern "C" {
 	#include <libavcodec/avcodec.h>
 	#include <libavcodec/codec.h>
@@ -23,9 +24,13 @@ public:
 	void start_compress();
 	void setup_ctx();
 
+	bool compress_state;
 private:
+	std::string str;
+	const char* filename;
+
 	std::shared_ptr<SLiomanager> io_ctx;
 	std::shared_ptr<SLcodec> c_ctx;
 	std::shared_ptr<SLstream> s_ctx;
-
+	std::shared_ptr<SLqueue> q;
 };
