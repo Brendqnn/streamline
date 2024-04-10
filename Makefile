@@ -1,4 +1,4 @@
-CC=clang
+CC=clang -O3
 
 CFLAGS=-Wall -g -Ilib/ffmpeg/include
 LDFLAGS=-Llib/ffmpeg/lib -lavformat -lavcodec -lavutil -lswresample -lswscale
