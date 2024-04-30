@@ -70,7 +70,7 @@ void open_decoder(SLDecoder *decoder, SLStream *stream)
 
 void set_encoder_properties(SLEncoder *encoder, SLDecoder *decoder, SLStream *stream)
 {
-    encoder->codec_ctx->bit_rate = 4000000;
+    encoder->codec_ctx->bit_rate = 6500000;
     encoder->codec_ctx->width = stream->input_video_stream->codecpar->width;
     encoder->codec_ctx->height = stream->input_video_stream->codecpar->height;
     encoder->codec_ctx->pix_fmt = 0;
@@ -171,7 +171,6 @@ void decode(SLStream *stream, SLDecoder *decoder, SLEncoder *encoder, SLSrr *srr
         stream->frame = av_frame_alloc();
     }
     
-    //int stream_index = 0;
     int ret = 0;
     
      while (av_read_frame(stream->input_format_ctx, &stream->packet) == 0) {
