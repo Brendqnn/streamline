@@ -62,6 +62,7 @@ void create_output_label(const char *filename, char *output_filename)
 {
     const char *tag = "[Streamline]";
     const char *slash = strrchr(filename, '/');
+    
     if (slash != NULL) {
         size_t index = slash - filename + 1;
         strncpy(output_filename, filename, index);
@@ -69,11 +70,8 @@ void create_output_label(const char *filename, char *output_filename)
         strcat(output_filename, tag);
         strcat(output_filename, slash + 1);
     } else {
-        //size_t index = tag - filename;
-        //strncpy(output_filename, filename, index);
-        strncpy(output_filename, filename, 0);
-        output_filename = '\0';
-        strcat(output_filename, tag);
+        strcpy(output_filename, tag);
+        strcat(output_filename, filename);
     }
 
     printf("output filename: %s\n", output_filename);
@@ -89,25 +87,45 @@ void display_version()
     printf("|_____/|_|__| v%s\n", VERSION);
 }
 
-void setup_resampler(SLSrr *srr, SLDecoder *codec)
+void setup_resampler(SLSrr *srr, SLDecoder *codec, int sample_rate)
 {
-    srr->srr_ctx = swr_alloc();
+    int default_sample_rate = 48000;    
+    if (!sample_rate) {
+        srr->srr_ctx = swr_alloc();
 
-    swr_alloc_set_opts2(&srr->srr_ctx,         // we're allocating a new context
-                      &(AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO, // out_ch_layout
-                      AV_SAMPLE_FMT_FLT,    // out_sample_fmt
-                      44100,                // out_sample_rate
-                      &(AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO, // in_ch_layout
-                      codec->codec_ctx->sample_fmt,   // in_sample_fmt
-                      48000,                // in_sample_rate
-                      0,                    // log_offset
-                      NULL); 
+        swr_alloc_set_opts2(&srr->srr_ctx,
+                            &(AVChannelLayout)AV_CHANNEL_LAYOUT_7POINT1,
+                            AV_SAMPLE_FMT_FLT,
+                            default_sample_rate,
+                            &(AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO,
+                            codec->codec_ctx->sample_fmt,
+                            48000,
+                            0,                    
+                            NULL);
+        printf("Using default sample rate: %d\n", default_sample_rate);
+    } else {
+        swr_alloc_set_opts2(&srr->srr_ctx,
+                            &(AVChannelLayout)AV_CHANNEL_LAYOUT_7POINT1,
+                            AV_SAMPLE_FMT_FLT,
+                            sample_rate,
+                            &(AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO,
+                            codec->codec_ctx->sample_fmt,
+                            48000,
+                            0,                    
+                            NULL);
+    }
 }
 
 void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
     AVAudioFifo *fifo = (AVAudioFifo*)pDevice->pUserData;
+    float *output = (float*)pOutput;
     av_audio_fifo_read(fifo, &pOutput, frameCount);
+
+    float volume = 1.0f; // ANYTHING OVER THIS PEAKS VERY BAD.
+    for (ma_uint32 i = 0; i < frameCount * pDevice->playback.channels; ++i) {
+        output[i] *= volume;
+    }
 
     (void)pInput;
 }

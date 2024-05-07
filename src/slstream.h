@@ -7,6 +7,7 @@
 #include <libavutil/opt.h>
 #include <libavutil/channel_layout.h>
 
+
 typedef struct {
     AVFormatContext *input_format_ctx;
     AVFormatContext *output_format_ctx;
@@ -69,6 +70,5 @@ void open_input(const char *file, SLStream *stream)
         printf("No audio stream found.\n");
     }
 }
-
 
 #endif // SLSTERAM_H

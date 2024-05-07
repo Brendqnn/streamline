@@ -10,8 +10,8 @@
 
 
 int main(int argc, char *argv[])
-{   
-    const char *filename;
+{
+    const char *filename; 
     char output_filename[100];
     
     int compress = 0;
@@ -19,6 +19,7 @@ int main(int argc, char *argv[])
     SLStream stream = {0};
     SLDecoder decoder = {0};
     SLEncoder encoder = {0};
+    SLFiltering *filter_ctx = NULL;
     
     if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0) {
         display_version();
@@ -32,17 +33,25 @@ int main(int argc, char *argv[])
     }
     
     if (compress == 1 && argc == 2 && is_valid_file(argv[1])) {
-        filename = argv[1];
-
-        open_input(filename, &stream);
-        create_output_label(filename, output_filename);
-        open_decoder(&decoder, &stream);
-        open_encoder(&encoder, &decoder, &stream);
-        alloc_output_ctx(output_filename, &stream, &encoder);
-        copy_audio_parameters(&stream);
-        write_file_header(output_filename, &stream);
+        // Compress
+        unsigned int stream_index;
         
-        encode(&stream, &decoder, &encoder);
+        open_input_file(argv[1], &stream, &decoder);
+        create_output_label(argv[1], output_filename);
+        open_output_file(output_filename, &stream, &decoder, &encoder);
+        init_filters(&filter_ctx, &decoder, &stream, &encoder);
+
+        int ret;
+
+        AVPacket *packet = NULL;
+
+        while (1) {
+            if ((ret = av_read_frame(&stream.input_format_ctx, packet)) < 0)
+                break;
+
+          
+        }
+        av_write_trailer(stream.output_format_ctx);
     } else {
         filename = argv[1];
 
@@ -51,7 +60,7 @@ int main(int argc, char *argv[])
         
         open_input(filename, &stream);
         open_decoder(&decoder, &stream);
-        setup_resampler(&srr, &decoder);
+        setup_resampler(&srr, &decoder, 192000);
         srr.buffer = av_audio_fifo_alloc(AV_SAMPLE_FMT_FLT, 2, 1);
         decode(&stream, &decoder, &encoder, &srr);
 
@@ -63,4 +72,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
