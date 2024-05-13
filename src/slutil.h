@@ -87,7 +87,7 @@ void display_version()
     printf("|_____/|_|__| v%s\n", VERSION);
 }
 
-void setup_resampler(SLSrr *srr, SLDecoder *codec, int sample_rate)
+void setup_resampler(SLSrr *srr, SLDecoder *codec, int sample_rate, float volume)
 {
     int default_sample_rate = 48000;    
     if (!sample_rate) {
@@ -114,17 +114,18 @@ void setup_resampler(SLSrr *srr, SLDecoder *codec, int sample_rate)
                             0,                    
                             NULL);
     }
+
+    srr->volume = volume;
 }
 
 void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
-    AVAudioFifo *fifo = (AVAudioFifo*)pDevice->pUserData;
+    srr.buffer = (AVAudioFifo*)pDevice->pUserData;
     float *output = (float*)pOutput;
-    av_audio_fifo_read(fifo, &pOutput, frameCount);
+    av_audio_fifo_read(srr.buffer, &pOutput, frameCount);
 
-    float volume = 1.0f; // ANYTHING OVER THIS PEAKS VERY BAD.
     for (ma_uint32 i = 0; i < frameCount * pDevice->playback.channels; ++i) {
-        output[i] *= volume;
+        output[i] *= srr.volume;
     }
 
     (void)pInput;

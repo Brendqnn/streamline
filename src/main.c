@@ -145,12 +145,11 @@ int main(int argc, char **argv)
         SLDecoder decoder = {0};
         SLEncoder encoder = {0};
 
-        SLSrr srr = {0};
         SLAudioDevice audio_device = {0};
 
         open_input(argv[1], &stream);
         open_decoder(&decoder, &stream);
-        setup_resampler(&srr, &decoder, 192000);
+        setup_resampler(&srr, &decoder, 192000, 0.5f);
         srr.buffer = av_audio_fifo_alloc(AV_SAMPLE_FMT_FLT, 2, 1);
         decode(&stream, &decoder, &encoder, &srr);
 
@@ -162,4 +161,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-

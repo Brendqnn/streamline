@@ -63,11 +63,11 @@ void open_input(const char *file, SLStream *stream)
     stream->input_audio_stream = stream->input_format_ctx->streams[stream->audio_stream_index];
     
     if (stream->video_stream_index == -1) {
-        printf("No video stream found.\n");
+        return;
     }
 
     if (stream->audio_stream_index == -1) {
-        printf("No audio stream found.\n");
+        return;
     }
 }
 

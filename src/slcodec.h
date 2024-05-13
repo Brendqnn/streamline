@@ -30,6 +30,8 @@ typedef struct {
 typedef struct {
     SwrContext *srr_ctx;
     AVAudioFifo *buffer;
+
+    float volume;
 } SLSrr;
 
 typedef struct {
@@ -52,6 +54,7 @@ static AVFormatContext *ifmt_ctx;
 static AVFormatContext *ofmt_ctx;
 static SLFiltering *filter_ctx;
 static SLStreamContext *stream_ctx;
+static SLSrr srr = {0};
 
 void open_decoder(SLDecoder *decoder, SLStream *stream)
 {
@@ -88,9 +91,6 @@ void open_decoder(SLDecoder *decoder, SLStream *stream)
             return;
         }
     }
-
-    decoder->codec_ctx->thread_type = FF_THREAD_FRAME; // Use a single decoding thread
-    decoder->codec_ctx->thread_count = 1;
 }
 
 void set_encoder_properties(SLEncoder *encoder, SLDecoder *decoder, SLStream *stream)
@@ -101,9 +101,6 @@ void set_encoder_properties(SLEncoder *encoder, SLDecoder *decoder, SLStream *st
     encoder->codec_ctx->pix_fmt = 0;
     encoder->codec_ctx->time_base = stream->input_video_stream->time_base;
     encoder->codec_ctx->framerate = stream->input_video_framerate;
-
-    //encoder->codec_ctx->thread_type = FF_THREAD_FRAME; // Use a single decoding thread
-    //encoder->codec_ctx->thread_count = 1;
 }
 
 void copy_audio_parameters(SLStream *stream)
@@ -271,7 +268,8 @@ static int open_input_file(const char *filename)
             || codec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
             if (codec_ctx->codec_type == AVMEDIA_TYPE_VIDEO)
                 codec_ctx->framerate = av_guess_frame_rate(ifmt_ctx, stream, NULL);
-            /* Open decoder */
+            codec_ctx->bit_rate = 5500000;
+            
             ret = avcodec_open2(codec_ctx, dec, NULL);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR, "Failed to open decoder for stream #%u\n", i);
@@ -318,7 +316,6 @@ static int open_output_file(const char *filename)
 
         if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO
             || dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
-            /* in this example, we choose transcoding to same codec */
             encoder = avcodec_find_encoder(dec_ctx->codec_id);
             if (!encoder) {
                 av_log(NULL, AV_LOG_FATAL, "Necessary encoder not found\n");
@@ -329,10 +326,7 @@ static int open_output_file(const char *filename)
                 av_log(NULL, AV_LOG_FATAL, "Failed to allocate the encoder context\n");
                 return AVERROR(ENOMEM);
             }
-
-            /* In this example, we transcode to same properties (picture size,
-             * sample rate etc.). These properties can be changed for output
-             * streams easily using filters */
+            
             if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO) {
                 enc_ctx->height = dec_ctx->height;
                 enc_ctx->width = dec_ctx->width;
@@ -357,7 +351,6 @@ static int open_output_file(const char *filename)
             if (ofmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)
                 enc_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
-            /* Third parameter can be used to pass settings to encoder */
             ret = avcodec_open2(enc_ctx, encoder, NULL);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR, "Cannot open %s encoder for stream #%u\n", encoder->name, i);
@@ -375,7 +368,6 @@ static int open_output_file(const char *filename)
             av_log(NULL, AV_LOG_FATAL, "Elementary stream #%d is of unknown type, cannot proceed\n", i);
             return AVERROR_INVALIDDATA;
         } else {
-            /* if this stream must be remuxed */
             ret = avcodec_parameters_copy(out_stream->codecpar, in_stream->codecpar);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR, "Copying parameters for stream #%u failed\n", i);
