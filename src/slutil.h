@@ -146,14 +146,48 @@ void set_audio_playback_device(SLAudioDevice *audio_hw_device, SLStream *stream,
     }
 }
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+void sleep_seconds(int seconds) {
+    #ifdef _WIN32
+    Sleep(seconds * 1000);
+    #else
+    sleep(seconds);
+    #endif
+}
+
 void play_audio_buffer(SLStream *stream, SLAudioDevice *audio_hw_device, SLSrr *srr)
 {
+    int64_t duration = 0;
+    int hours, mins, secs, us;
+    
+    if (stream->input_format_ctx->duration != AV_NOPTS_VALUE) {
+        duration = stream->input_format_ctx->duration + 5000; // add 5000 to round up
+        secs = duration / AV_TIME_BASE;
+        us = duration % AV_TIME_BASE;
+        mins = secs / 60;
+        secs %= 60;
+        hours = mins / 60;
+        mins %= 60;
+        fprintf(stdout, "Duration: %02d:%02d:%02d.%02d\n", hours, mins, secs,
+                (100 * us) / AV_TIME_BASE);
+    } else {
+        fprintf(stderr, "Could not determine duration\n");
+    }
+
+    int total_seconds = mins * 60 + secs + 1; // just padding the milliseconds with 1
+    printf("%d\n", total_seconds);
+
     if (ma_device_start(&audio_hw_device->device) != MA_SUCCESS) {
         printf("Failed to start playback device.\n");
         return;
     }
-
-    getchar(); // idk what else to do
+    
+    sleep_seconds(total_seconds);
 
     av_audio_fifo_free(srr->buffer);
 }

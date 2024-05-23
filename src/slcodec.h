@@ -259,8 +259,6 @@ static int open_input_file(const char *filename)
             return ret;
         }
 
-        /* Inform the decoder about the timebase for the packet timestamps.
-         * This is highly recommended, but not mandatory. */
         codec_ctx->pkt_timebase = stream->time_base;
 
         /* Reencode video & audio and remux subtitles etc. */
@@ -268,7 +266,7 @@ static int open_input_file(const char *filename)
             || codec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
             if (codec_ctx->codec_type == AVMEDIA_TYPE_VIDEO)
                 codec_ctx->framerate = av_guess_frame_rate(ifmt_ctx, stream, NULL);
-            codec_ctx->bit_rate = 5500000;
+            codec_ctx->bit_rate = 6500000;
             
             ret = avcodec_open2(codec_ctx, dec, NULL);
             if (ret < 0) {
@@ -331,19 +329,17 @@ static int open_output_file(const char *filename)
                 enc_ctx->height = dec_ctx->height;
                 enc_ctx->width = dec_ctx->width;
                 enc_ctx->sample_aspect_ratio = dec_ctx->sample_aspect_ratio;
-                /* take first format from list of supported formats */
                 if (encoder->pix_fmts)
                     enc_ctx->pix_fmt = encoder->pix_fmts[0];
                 else
                     enc_ctx->pix_fmt = dec_ctx->pix_fmt;
-                /* video time_base can be set to whatever is handy and supported by encoder */
                 enc_ctx->time_base = av_inv_q(dec_ctx->framerate);
             } else {
                 enc_ctx->sample_rate = dec_ctx->sample_rate;
                 ret = av_channel_layout_copy(&enc_ctx->ch_layout, &dec_ctx->ch_layout);
                 if (ret < 0)
                     return ret;
-                /* take first format from list of supported formats */
+                
                 enc_ctx->sample_fmt = encoder->sample_fmts[0];
                 enc_ctx->time_base = (AVRational){1, enc_ctx->sample_rate};
             }
@@ -402,12 +398,16 @@ static int init_filter(SLFiltering* fctx, AVCodecContext *dec_ctx,
 {
     char args[512];
     int ret = 0;
+    
     const AVFilter *buffersrc = NULL;
     const AVFilter *buffersink = NULL;
+    
     AVFilterContext *buffersrc_ctx = NULL;
     AVFilterContext *buffersink_ctx = NULL;
+    
     AVFilterInOut *outputs = avfilter_inout_alloc();
     AVFilterInOut *inputs  = avfilter_inout_alloc();
+    
     AVFilterGraph *filter_graph = avfilter_graph_alloc();
 
     if (!outputs || !inputs || !filter_graph) {
@@ -512,7 +512,6 @@ static int init_filter(SLFiltering* fctx, AVCodecContext *dec_ctx,
         goto end;
     }
 
-    /* Endpoints for the filter graph. */
     outputs->name       = av_strdup("in");
     outputs->filter_ctx = buffersrc_ctx;
     outputs->pad_idx    = 0;
@@ -535,7 +534,6 @@ static int init_filter(SLFiltering* fctx, AVCodecContext *dec_ctx,
     if ((ret = avfilter_graph_config(filter_graph, NULL)) < 0)
         goto end;
 
-    /* Fill FilteringContext */
     fctx->buffersrc_ctx = buffersrc_ctx;
     fctx->buffersink_ctx = buffersink_ctx;
     fctx->filter_graph = filter_graph;
@@ -594,7 +592,6 @@ static int encode_write_frame(unsigned int stream_index, int flush)
     int ret;
 
     av_log(NULL, AV_LOG_INFO, "Encoding frame\n");
-    /* encode filtered frame */
     av_packet_unref(enc_pkt);
 
     if (filt_frame && filt_frame->pts != AV_NOPTS_VALUE)
@@ -632,7 +629,6 @@ static int filter_encode_write_frame(AVFrame *frame, unsigned int stream_index)
     int ret;
 
     av_log(NULL, AV_LOG_INFO, "Pushing decoded frame to filters\n");
-    /* push the decoded frame into the filtergraph */
     ret = av_buffersrc_add_frame_flags(filter->buffersrc_ctx,
                                        frame, 0);
     if (ret < 0) {
@@ -640,16 +636,12 @@ static int filter_encode_write_frame(AVFrame *frame, unsigned int stream_index)
         return ret;
     }
 
-    /* pull filtered frames from the filtergraph */
     while (1) {
         av_log(NULL, AV_LOG_INFO, "Pulling filtered frame from filters\n");
         ret = av_buffersink_get_frame(filter->buffersink_ctx,
                                       filter->filtered_frame);
         if (ret < 0) {
-            /* if no more frames for output - returns AVERROR(EAGAIN)
-             * if flushed and no more frames for output - returns AVERROR_EOF
-             * rewrite retcode to 0 to show it as normal procedure completion
-             */
+
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
                 ret = 0;
             break;

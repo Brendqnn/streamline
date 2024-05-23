@@ -60,7 +60,6 @@ int main(int argc, char **argv)
         init_filters();
         packet = av_packet_alloc();
 
-        /* read all packets */
         while (1) {
             if ((ret = av_read_frame(ifmt_ctx, packet)) < 0)
                 break;
@@ -88,7 +87,6 @@ int main(int argc, char **argv)
                     ret = filter_encode_write_frame(stream->dec_frame, stream_index);
                 }
             } else {
-                /* remux this frame without reencoding */
                 av_packet_rescale_ts(packet,
                                      ifmt_ctx->streams[stream_index]->time_base,
                                      ofmt_ctx->streams[stream_index]->time_base);
@@ -98,7 +96,6 @@ int main(int argc, char **argv)
             av_packet_unref(packet);
         }
 
-        /* flush decoders, filters and encoders */
         for (i = 0; i < ifmt_ctx->nb_streams; i++) {
             SLStreamContext *stream;
 
@@ -109,7 +106,6 @@ int main(int argc, char **argv)
 
             av_log(NULL, AV_LOG_INFO, "Flushing stream %u decoder\n", i);
 
-            /* flush decoder */
             ret = avcodec_send_packet(stream->dec_ctx, NULL);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR, "Flushing decoding failed\n");
@@ -124,13 +120,11 @@ int main(int argc, char **argv)
                 ret = filter_encode_write_frame(stream->dec_frame, i);
             }
 
-            /* flush filter */
             ret = filter_encode_write_frame(NULL, i);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR, "Flushing filter failed\n");
             }
 
-            /* flush encoder */
             ret = flush_encoder(i);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR, "Flushing encoder failed\n");
@@ -149,7 +143,7 @@ int main(int argc, char **argv)
 
         open_input(argv[1], &stream);
         open_decoder(&decoder, &stream);
-        setup_resampler(&srr, &decoder, 192000, 0.5f);
+        setup_resampler(&srr, &decoder, 192000, 1.2f);
         srr.buffer = av_audio_fifo_alloc(AV_SAMPLE_FMT_FLT, 2, 1);
         decode(&stream, &decoder, &encoder, &srr);
 
