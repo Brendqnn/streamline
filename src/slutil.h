@@ -122,12 +122,17 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 {
     srr.buffer = (AVAudioFifo*)pDevice->pUserData;
     float *output = (float*)pOutput;
-    av_audio_fifo_read(srr.buffer, &pOutput, frameCount);
 
-    for (ma_uint32 i = 0; i < frameCount * pDevice->playback.channels; ++i) {
-        output[i] *= srr.volume;
+    if (srr.volume == 0) {
+        av_audio_fifo_read(srr.buffer, &pOutput, frameCount);
+    } else {
+        av_audio_fifo_read(srr.buffer, &pOutput, frameCount);
+
+        for (ma_uint32 i = 0; i < frameCount * pDevice->playback.channels; ++i) {
+            output[i] *= srr.volume;
+        }
     }
-
+    
     (void)pInput;
 }
 
@@ -163,7 +168,10 @@ void sleep_seconds(int seconds) {
 void play_audio_buffer(SLStream *stream, SLAudioDevice *audio_hw_device, SLSrr *srr)
 {
     int64_t duration = 0;
-    int hours, mins, secs, us;
+    int hours = 0;
+    int mins = 0;
+    int secs = 0;
+    int us = 0;
     
     if (stream->input_format_ctx->duration != AV_NOPTS_VALUE) {
         duration = stream->input_format_ctx->duration + 5000; // add 5000 to round up
@@ -188,8 +196,18 @@ void play_audio_buffer(SLStream *stream, SLAudioDevice *audio_hw_device, SLSrr *
     }
     
     sleep_seconds(total_seconds);
+}
 
-    av_audio_fifo_free(srr->buffer);
+void free_audio(SLSrr *srr, SLStream *stream)
+{
+    if (srr->buffer != NULL) {
+        av_audio_fifo_free(srr->buffer);
+        swr_free(&srr->srr_ctx);
+    }
+
+    if (stream != NULL) {
+        free_stream(stream);
+    }
 }
 
 #endif // SLUTIL_H

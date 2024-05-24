@@ -143,14 +143,13 @@ int main(int argc, char **argv)
 
         open_input(argv[1], &stream);
         open_decoder(&decoder, &stream);
-        setup_resampler(&srr, &decoder, 192000, 1.2f);
+        setup_resampler(&srr, &decoder, 192000, 0);
         srr.buffer = av_audio_fifo_alloc(AV_SAMPLE_FMT_FLT, 2, 1);
         decode(&stream, &decoder, &encoder, &srr);
 
         set_audio_playback_device(&audio_device, &stream, &srr);
 
         play_audio_buffer(&stream, &audio_device, &srr);
-        avformat_close_input(&stream.input_format_ctx);
     }
 
     return 0;

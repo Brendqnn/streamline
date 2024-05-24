@@ -71,4 +71,27 @@ void open_input(const char *file, SLStream *stream)
     }
 }
 
+void free_stream(SLStream *stream)
+{
+    if (stream == NULL) {
+        return;
+    }
+
+    av_packet_unref(&stream->packet);
+
+    if (stream->frame != NULL) {
+        av_frame_free(&stream->frame);
+    }
+
+    if (stream->input_format_ctx != NULL) {
+        avformat_close_input(&stream->input_format_ctx);
+    }
+
+    if (stream->output_format_ctx != NULL) {
+        avformat_free_context(stream->output_format_ctx);
+        stream->output_format_ctx = NULL;
+    }
+}
+
+
 #endif // SLSTERAM_H

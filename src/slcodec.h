@@ -266,7 +266,7 @@ static int open_input_file(const char *filename)
             || codec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
             if (codec_ctx->codec_type == AVMEDIA_TYPE_VIDEO)
                 codec_ctx->framerate = av_guess_frame_rate(ifmt_ctx, stream, NULL);
-            codec_ctx->bit_rate = 6500000;
+            codec_ctx->bit_rate = 8500000;
             
             ret = avcodec_open2(codec_ctx, dec, NULL);
             if (ret < 0) {
