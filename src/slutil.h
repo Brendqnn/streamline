@@ -1,7 +1,6 @@
 #ifndef SLUTIL_H
 #define SLUTIL_H
-
-#include "slstream.h"
+ 
 #include "slcodec.h"
 
 #include <stdio.h>
@@ -73,8 +72,6 @@ void create_output_label(const char *filename, char *output_filename)
         strcpy(output_filename, tag);
         strcat(output_filename, filename);
     }
-
-    printf("output filename: %s\n", output_filename);
 }
 
 void display_version()
@@ -87,29 +84,29 @@ void display_version()
     printf("|_____/|_|__| v%s\n", VERSION);
 }
 
-void setup_resampler(SLSrr *srr, SLDecoder *codec, int sample_rate, float volume)
+void setup_resampler(SLSrr *srr, int sample_rate, float volume)
 {
-    int default_sample_rate = 48000;    
+    int default_sample_rate = 48000;
     if (!sample_rate) {
         srr->srr_ctx = swr_alloc();
 
         swr_alloc_set_opts2(&srr->srr_ctx,
-                            &(AVChannelLayout)AV_CHANNEL_LAYOUT_7POINT1,
+                            &(AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO,
                             AV_SAMPLE_FMT_FLT,
                             default_sample_rate,
                             &(AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO,
-                            codec->codec_ctx->sample_fmt,
+                            stream_ctx->dec_ctx->sample_fmt,
                             48000,
                             0,                    
                             NULL);
         printf("Using default sample rate: %d\n", default_sample_rate);
     } else {
         swr_alloc_set_opts2(&srr->srr_ctx,
-                            &(AVChannelLayout)AV_CHANNEL_LAYOUT_7POINT1,
+                            &(AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO,
                             AV_SAMPLE_FMT_FLT,
                             sample_rate,
                             &(AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO,
-                            codec->codec_ctx->sample_fmt,
+                            stream_ctx->dec_ctx->sample_fmt,
                             48000,
                             0,                    
                             NULL);
@@ -136,12 +133,12 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
     (void)pInput;
 }
 
-void set_audio_playback_device(SLAudioDevice *audio_hw_device, SLStream *stream, SLSrr *srr)
+void set_audio_playback_device(SLAudioDevice *audio_hw_device, SLSrr *srr)
 {
     audio_hw_device->device_config = ma_device_config_init(ma_device_type_playback);
     
     audio_hw_device->device_config.playback.format   = ma_format_f32;
-    audio_hw_device->device_config.sampleRate        = stream->input_audio_stream->codecpar->sample_rate;
+    audio_hw_device->device_config.sampleRate        = stream_ctx->dec_ctx->sample_rate;
     audio_hw_device->device_config.dataCallback      = data_callback;
     audio_hw_device->device_config.pUserData         = srr->buffer;
 
@@ -165,7 +162,7 @@ void sleep_seconds(int seconds) {
     #endif
 }
 
-void play_audio_buffer(SLStream *stream, SLAudioDevice *audio_hw_device, SLSrr *srr)
+void play_audio_buffer(SLAudioDevice *audio_hw_device, SLSrr *srr)
 {
     int64_t duration = 0;
     int hours = 0;
@@ -173,22 +170,19 @@ void play_audio_buffer(SLStream *stream, SLAudioDevice *audio_hw_device, SLSrr *
     int secs = 0;
     int us = 0;
     
-    if (stream->input_format_ctx->duration != AV_NOPTS_VALUE) {
-        duration = stream->input_format_ctx->duration + 5000; // add 5000 to round up
+    if (ifmt_ctx->duration != AV_NOPTS_VALUE) {
+        duration = ifmt_ctx->duration + 5000; // add 5000 to round up
         secs = duration / AV_TIME_BASE;
         us = duration % AV_TIME_BASE;
         mins = secs / 60;
         secs %= 60;
         hours = mins / 60;
         mins %= 60;
-        fprintf(stdout, "Duration: %02d:%02d:%02d.%02d\n", hours, mins, secs,
-                (100 * us) / AV_TIME_BASE);
     } else {
         fprintf(stderr, "Could not determine duration\n");
     }
 
     int total_seconds = mins * 60 + secs + 1; // just padding the milliseconds with 1
-    printf("%d\n", total_seconds);
 
     if (ma_device_start(&audio_hw_device->device) != MA_SUCCESS) {
         printf("Failed to start playback device.\n");
@@ -198,15 +192,11 @@ void play_audio_buffer(SLStream *stream, SLAudioDevice *audio_hw_device, SLSrr *
     sleep_seconds(total_seconds);
 }
 
-void free_audio(SLSrr *srr, SLStream *stream)
+void free_audio(SLSrr *srr)
 {
     if (srr->buffer != NULL) {
         av_audio_fifo_free(srr->buffer);
         swr_free(&srr->srr_ctx);
-    }
-
-    if (stream != NULL) {
-        free_stream(stream);
     }
 }
 

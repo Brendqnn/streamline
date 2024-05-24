@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "slutil.h"
-#include "slstream.h"
 #include "slcodec.h"
 
 
@@ -54,7 +53,7 @@ int main(int argc, char **argv)
     }
 
     if (compress == 1 && argc == 2 && is_valid_file(argv[1])) {
-        open_input_file(argv[1]);
+        open_input_file(argv[1], NULL);
         create_output_label(argv[1], output_filename);
         open_output_file(output_filename);
         init_filters();
@@ -135,21 +134,17 @@ int main(int argc, char **argv)
 
         free_compressor_data(ifmt_ctx, ofmt_ctx, filter_ctx, stream_ctx, packet);
     } else {
-        SLStream stream = {0};
-        SLDecoder decoder = {0};
-        SLEncoder encoder = {0};
-
         SLAudioDevice audio_device = {0};
-
-        open_input(argv[1], &stream);
-        open_decoder(&decoder, &stream);
-        setup_resampler(&srr, &decoder, 192000, 0);
+        
+        open_input_file(argv[1], &srr);
+        
+        setup_resampler(&srr, 48000, 1.5f);
         srr.buffer = av_audio_fifo_alloc(AV_SAMPLE_FMT_FLT, 2, 1);
-        decode(&stream, &decoder, &encoder, &srr);
+        decode(&srr);
 
-        set_audio_playback_device(&audio_device, &stream, &srr);
+        set_audio_playback_device(&audio_device, &srr);
 
-        play_audio_buffer(&stream, &audio_device, &srr);
+        play_audio_buffer(&audio_device, &srr);
     }
 
     return 0;
