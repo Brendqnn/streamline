@@ -1,4 +1,4 @@
-CC=clang -O3
+CC=g++ -O3
 
 CFLAGS=-Wall -g -Ilib/ffmpeg/include
 LDFLAGS=-Llib/ffmpeg/lib -lavformat -lavcodec -lavutil -lswresample -lswscale -lavfilter
@@ -7,7 +7,7 @@ SRC=$(wildcard src/*.c)
 OBJ=$(SRC:.c=.o)
 BIN=bin
 
-.PHONY: all clean
+.PHONY: all shared clean
 
 all: streamline
 
@@ -19,6 +19,9 @@ streamline: $(OBJ)
 
 %.o: %.c
 	$(CC) -o $@ -c $< $(CFLAGS)
+
+static: $(OBJ)
+	ar rcs $(BIN)/libstreamline.a $^
 
 clean:
 	del /Q bin\streamline.exe src\*.o
