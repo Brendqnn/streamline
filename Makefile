@@ -1,7 +1,7 @@
-CC=g++ -O3
+CC=g++
 
-CFLAGS=-Wall -g -Ilib/ffmpeg/include
-LDFLAGS=-Llib/ffmpeg/lib -lavformat -lavcodec -lavutil -lswresample -lswscale -lavfilter
+CFLAGS= -g -O3 -Iinclude
+LDFLAGS=
 
 SRC=$(wildcard src/*.c)
 OBJ=$(SRC:.c=.o)
