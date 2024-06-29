@@ -11,9 +11,14 @@ int main(int argc, char** argv)
         printf("Usage: %s <path_to_mp3_file>\n", argv[0]);
         return -1;
     }
+
+    sl_display_version();
+
+    printf("\n");
     
     sl_setup_audio_device(argv[1], &device);
     sl_play(&device);
+    sl_free_device(&device);    
 
     return 0;
 }
