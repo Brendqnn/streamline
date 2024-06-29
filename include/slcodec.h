@@ -26,7 +26,7 @@ typedef struct {
 
 #define VERSION "1.0"
 
-void sl_setup_audio_device(const char *file, SLAudioDevice *device, float volume);
+SLAudioDevice* sl_setup_audio_device(const char *file, float volume);
 void sl_play(SLAudioDevice *device);
 void sl_sleep_seconds(int seconds);
 void sl_free_device(SLAudioDevice *device);
@@ -38,7 +38,7 @@ typedef struct SLAudioDevice SLAudioDevice;
 
 #define VERSION "1.0"
 
-void sl_setup_audio_device(const char *file, SLAudioDevice *device, float volume);
+SLAudioDevice* sl_setup_audio_device(const char *file, float volume);
 void sl_play(SLAudioDevice *device);
 void sl_sleep_seconds(int seconds);
 void sl_free_device(SLAudioDevice *device);

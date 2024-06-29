@@ -84,21 +84,22 @@ void sl_display_version()
     printf("|_____/|_|__| v%s\n", VERSION);
 }
 
-void sl_setup_audio_device(const char *file, SLAudioDevice *device, float volume)
+SLAudioDevice* sl_setup_audio_device(const char *file, float volume)
 {
+    SLAudioDevice *device = (SLAudioDevice *)malloc(sizeof(SLAudioDevice));
+
+    
     device->volume = volume;
     
     device->result = ma_decoder_init_file(file, NULL, &device->decoder);
     if (device->result != MA_SUCCESS) {
         printf("Failed to initialize decoder.\n");
-        return;
     }
 
     device->result = ma_decoder_get_length_in_pcm_frames(&device->decoder, &device->total_frame_count);
     if (device->result != MA_SUCCESS) {
         printf("Failed to get length of the audio file.\n");
         ma_decoder_uninit(&device->decoder);
-        return;
     }
 
     device->duration = (float)device->total_frame_count / device->decoder.outputSampleRate;
@@ -128,8 +129,9 @@ void sl_setup_audio_device(const char *file, SLAudioDevice *device, float volume
     if (device->result != MA_SUCCESS) {
         printf("Failed to initialize playback device.\n");
         ma_decoder_uninit(&device->decoder);
-        return;
     }
+
+    return device;
 }
 
 void sl_play(SLAudioDevice *device)
@@ -146,7 +148,8 @@ void sl_play(SLAudioDevice *device)
 }
 
 void sl_free_device(SLAudioDevice *device)
-{  
+{
     ma_device_uninit(&device->device);
     ma_decoder_uninit(&device->decoder);
+    free(device);
 }
