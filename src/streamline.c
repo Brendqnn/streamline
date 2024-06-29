@@ -1,5 +1,5 @@
 #define SLCODEC_INTERNAL
-#include "slcodec.h"
+#include "streamline.h"
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"

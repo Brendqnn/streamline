@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define SLCODEC_INTERNAL
-#include "slcodec.h"
+#define STREAMLINE_INTERNAL
+#include "streamline.h"
 
 int main(int argc, char** argv)
 {    
