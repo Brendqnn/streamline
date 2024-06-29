@@ -16,7 +16,7 @@ int main(int argc, char** argv)
 
     printf("\n");
     
-    sl_setup_audio_device(argv[1], &device);
+    sl_setup_audio_device(argv[1], &device, 0.8f);
     sl_play(&device);
     sl_free_device(&device);    
 

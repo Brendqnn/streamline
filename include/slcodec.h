@@ -26,10 +26,12 @@ typedef struct {
     ma_device_config device_config;
     ma_device device;
     ma_uint64 total_frame_count;
+    
     float duration;
+    float volume;
 } SLAudioDevice;
 
-void sl_setup_audio_device(const char *file, SLAudioDevice *device);
+void sl_setup_audio_device(const char *file, SLAudioDevice *device, float volume);
 void sl_play(SLAudioDevice *device);
 void sl_sleep_seconds(int seconds);
 void sl_data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount);

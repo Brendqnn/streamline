@@ -5,62 +5,61 @@
 
 void sl_data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
-    float volume = 0.2f; // Adjust this value to set the desired volume level
-    ma_decoder* pDecoder = (ma_decoder*)pDevice->pUserData;
-    if (pDecoder == NULL) {
+    SLAudioDevice* pAudioDevice = (SLAudioDevice*)pDevice->pUserData;
+    if (pAudioDevice == NULL || pAudioDevice->volume == 1.0f) {
         return;
     }
+
+    ma_decoder* pDecoder = &pAudioDevice->decoder;
+    float volume = pAudioDevice->volume;
 
     ma_uint64 framesRead;
     ma_decoder_read_pcm_frames(pDecoder, pOutput, frameCount, &framesRead);
 
-    if (volume != 1.0f) {
-        ma_format format = pDevice->playback.format;
-        ma_uint32 channels = pDevice->playback.channels;
+    ma_format format = pDevice->playback.format;
+    ma_uint32 channels = pDevice->playback.channels;
 
-        switch (format) {
-            case ma_format_f32: {
-                float* p_sample = (float*)pOutput;
-                for (ma_uint32 i = 0; i < framesRead * channels; ++i) {
-                    p_sample[i] *= volume;
-                }
-                break;
+    switch (format) {
+        case ma_format_f32: {
+            float* p_sample = (float*)pOutput;
+            for (ma_uint32 i = 0; i < framesRead * channels; ++i) {
+                p_sample[i] *= volume;
             }
-            case ma_format_s16: {
-                int16_t* p_sample = (int16_t*)pOutput;
-                for (ma_uint32 i = 0; i < framesRead * channels; ++i) {
-                    p_sample[i] = (int16_t)(p_sample[i] * volume);
-                }
-                break;
+            break;
+        }
+        case ma_format_s16: {
+            int16_t* p_sample = (int16_t*)pOutput;
+            for (ma_uint32 i = 0; i < framesRead * channels; ++i) {
+                p_sample[i] = (int16_t)(p_sample[i] * volume);
             }
-            case ma_format_s24: {
-                uint8_t* p_sample = (uint8_t*)pOutput;
-                for (ma_uint32 i = 0; i < framesRead * channels; ++i) {
-                    // Convert 24-bit packed data to 32-bit for volume adjustments then combined for a single 32-bit integer
-                    int32_t sample = ((int32_t)p_sample[3 * i] << 8) // The first byte is shifted left by 8 bits
-                        | ((int32_t)p_sample[3 * i + 1] << 16) // The second byte is shifted left by 16 bits
-                        | ((int32_t)p_sample[3 * i + 2] << 24); // The third byte is shifted left by 24 bits
-                    
-                    sample = (int32_t)(sample * volume);
+            break;
+        }
+        case ma_format_s24: {
+            uint8_t* p_sample = (uint8_t*)pOutput;
+            for (ma_uint32 i = 0; i < framesRead * channels; ++i) {
+                // Convert 24-bit packed data to 32-bit for volume adjustments then combined for a single 32-bit integer
+                int32_t sample = ((int32_t)p_sample[3 * i] << 8)
+                    | ((int32_t)p_sample[3 * i + 1] << 16)
+                    | ((int32_t)p_sample[3 * i + 2] << 24);
 
-                    // Repacking 24-bit sample
-                    p_sample[3 * i] = (uint8_t)(sample >> 8); // Extract the lowest 8 bits of the 24-bit sample
-                    p_sample[3 * i + 1] = (uint8_t)(sample >> 16); // Extract the next 8 bits of the 24-bit sample
-                    p_sample[3 * i + 2] = (uint8_t)(sample >> 24); // Extract the highest 8 bits of the 24-bit sample
-                }
-                break;
+                sample = (int32_t)(sample * volume);
+                
+                // Repacking 24-bit sample
+                p_sample[3 * i] = (uint8_t)(sample >> 8);
+                p_sample[3 * i + 1] = (uint8_t)(sample >> 16);
+                p_sample[3 * i + 2] = (uint8_t)(sample >> 24);
             }
-            case ma_format_s32: {
-                int32_t* p_sample = (int32_t*)pOutput;
-                for (ma_uint32 i = 0; i < framesRead * channels; ++i) {
-                    p_sample[i] = (int32_t)(p_sample[i] * volume);
-                }
-                break;
+            break;
+        }
+        case ma_format_s32: {
+            int32_t* p_sample = (int32_t*)pOutput;
+            for (ma_uint32 i = 0; i < framesRead * channels; ++i) {
+                p_sample[i] = (int32_t)(p_sample[i] * volume);
             }
-            default: {
-                // Handle unsupported format
-                break;
-            }
+            break;
+        }
+        default: {
+            break;
         }
     }
 }
@@ -84,15 +83,16 @@ void sl_display_version()
     printf("|_____/|_|__| v%s\n", VERSION);
 }
 
-void sl_setup_audio_device(const char *file, SLAudioDevice *device)
+void sl_setup_audio_device(const char *file, SLAudioDevice *device, float volume)
 {
+    device->volume = volume;
+    
     device->result = ma_decoder_init_file(file, NULL, &device->decoder);
     if (device->result != MA_SUCCESS) {
         printf("Failed to initialize decoder.\n");
         return;
     }
 
-    device->total_frame_count;
     device->result = ma_decoder_get_length_in_pcm_frames(&device->decoder, &device->total_frame_count);
     if (device->result != MA_SUCCESS) {
         printf("Failed to get length of the audio file.\n");
@@ -113,6 +113,7 @@ void sl_setup_audio_device(const char *file, SLAudioDevice *device)
         case ma_format_s24: format_str = "24-bit signed integer"; break;
         case ma_format_s32: format_str = "32-bit signed integer"; break;
     }
+    
     printf("Format: %s\n", format_str);
 
     device->device_config                   = ma_device_config_init(ma_device_type_playback);
@@ -120,7 +121,7 @@ void sl_setup_audio_device(const char *file, SLAudioDevice *device)
     device->device_config.playback.channels = device->decoder.outputChannels;
     device->device_config.sampleRate        = device->decoder.outputSampleRate;
     device->device_config.dataCallback      = sl_data_callback;
-    device->device_config.pUserData         = &device->decoder;
+    device->device_config.pUserData         = device;
 
     device->result = ma_device_init(NULL, &device->device_config, &device->device);
     if (device->result != MA_SUCCESS) {
