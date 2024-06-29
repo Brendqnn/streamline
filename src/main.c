@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define SLCODEC_INTERNAL
 #include "slcodec.h"
 
 int main(int argc, char** argv)
