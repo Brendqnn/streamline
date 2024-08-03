@@ -12,10 +12,12 @@ int main(int argc, char** argv)
     }
 
     sl_display_version();
-
     printf("\n");
     
-    SLAudioDevice *device = sl_setup_audio_device(argv[1], 0.8f);
+    SLAudioDevice *device = NULL;
+    device = sl_setup_audio_device(argv[1], 0.25f);
+    device->fade = true;
+    
     sl_play(device);
     sl_free_device(device);    
 

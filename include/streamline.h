@@ -1,24 +1,27 @@
-#ifndef SLCODEC_H
-#define SLCODEC_H
+#ifndef STREAMLINE_H
+#define STREAMLINE_H
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+
 #ifdef _WIN32
 #include <windows.h>
-#include <cstdint>
 #else
 #include <unistd.h>
 #endif
 
-#ifdef SLCODEC_INTERNAL
+#ifdef STREAMLINE_INTERNAL
 #include "miniaudio.h"
 
 typedef struct {
     ma_result result;
     ma_decoder decoder;
     ma_device_config device_config;
-    ma_device device;
+    ma_device pcm_device;
     ma_uint64 total_frame_count;
+
+    bool fade;
     
     float duration;
     float volume;
@@ -26,10 +29,11 @@ typedef struct {
 
 #define VERSION "1.0"
 
-SLAudioDevice* sl_setup_audio_device(const char *file, float volume);
-void sl_play(SLAudioDevice *device);
+SLAudioDevice *sl_setup_audio_device(const char *file, float volume);
+float sl_audio_fade_in(SLAudioDevice *pdevice);
+void sl_play(SLAudioDevice *pdevice);
 void sl_sleep_seconds(int seconds);
-void sl_free_device(SLAudioDevice *device);
+void sl_free_device(SLAudioDevice *pdevice);
 void sl_display_version();
 
 #else
@@ -39,11 +43,12 @@ typedef struct SLAudioDevice SLAudioDevice;
 #define VERSION "1.0"
 
 SLAudioDevice* sl_setup_audio_device(const char *file, float volume);
-void sl_play(SLAudioDevice *device);
+float sl_audio_fade_in(SLAudioDevice *pdevice);
+void sl_play(SLAudioDevice *pdevice);
 void sl_sleep_seconds(int seconds);
-void sl_free_device(SLAudioDevice *device);
+void sl_free_device(SLAudioDevice *pdevice);
 void sl_display_version();
 
-#endif // SLCODEC_INTERNAL
+#endif
 
-#endif // SLCODEC_H
+#endif

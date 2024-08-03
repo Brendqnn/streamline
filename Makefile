@@ -1,6 +1,6 @@
-CC=g++
+CC=gcc -std=c89
 
-CFLAGS= -g -O3 -Iinclude
+CFLAGS= -Iinclude
 LDFLAGS=
 
 SRC=$(wildcard src/*.c)

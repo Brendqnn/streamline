@@ -1,61 +1,114 @@
-#define SLCODEC_INTERNAL
+#include <time.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define STREAMLINE_INTERNAL
 #include "streamline.h"
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
 
+float sl_audio_fade_in(SLAudioDevice *pdevice)
+{
+    static clock_t start = 0;
+    float volume;
+    clock_t now;
+    double elapsed;
+    double fade_in_duration;
+    double fade_out_duration;
+    double remaining;
+    float current_volume = 0.0f;
+
+    if (start == 0) {
+        start = clock();
+    }
+
+    volume = pdevice->volume;
+    
+    now = clock();
+    elapsed = (double)(now - start) / CLOCKS_PER_SEC;
+    fade_in_duration = pdevice->duration / 10.0;
+    fade_out_duration = pdevice->duration / 10.0;
+    remaining = pdevice->duration - elapsed;
+    
+    if (elapsed < fade_in_duration) {
+        current_volume = (float)(volume * log10(1 + 9 * (elapsed / fade_in_duration)));
+    } else if (remaining < fade_out_duration) {
+        current_volume = (float)(volume * log10(1 + 9 * (remaining / fade_out_duration)));
+    } else {
+        current_volume = volume;
+    }
+
+    return current_volume;
+}
+
 void sl_data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
-    SLAudioDevice* pAudioDevice = (SLAudioDevice*)pDevice->pUserData;
-    if (pAudioDevice == NULL || pAudioDevice->volume == 1.0f) {
+    SLAudioDevice* pAudioDevice;
+    ma_decoder* pDecoder;
+    float volume;
+    ma_uint64 framesRead;
+    ma_format format;
+    ma_uint32 channels;
+    float current_volume = 0.0f;
+
+    pAudioDevice = (SLAudioDevice*)pDevice->pUserData;
+    if (pAudioDevice == NULL) {
+        fprintf(stderr, "Error: audio device is null\n");
         return;
     }
 
-    ma_decoder* pDecoder = &pAudioDevice->decoder;
-    float volume = pAudioDevice->volume;
+    pDecoder = &pAudioDevice->decoder;
+    volume = pAudioDevice->volume;
 
-    ma_uint64 framesRead;
     ma_decoder_read_pcm_frames(pDecoder, pOutput, frameCount, &framesRead);
 
-    ma_format format = pDevice->playback.format;
-    ma_uint32 channels = pDevice->playback.channels;
+    format = pDevice->playback.format;
+    channels = pDevice->playback.channels;
+
+    if (pAudioDevice->fade) {
+        current_volume = sl_audio_fade_in(pAudioDevice);
+    }
 
     switch (format) {
         case ma_format_f32: {
             float* p_sample = (float*)pOutput;
-            for (ma_uint32 i = 0; i < framesRead * channels; ++i) {
-                p_sample[i] *= volume;
+            ma_uint32 i;
+            for (i = 0; i < framesRead * channels; ++i) {
+                p_sample[i] *= current_volume;
             }
             break;
         }
         case ma_format_s16: {
-            int16_t* p_sample = (int16_t*)pOutput;
-            for (ma_uint32 i = 0; i < framesRead * channels; ++i) {
-                p_sample[i] = (int16_t)(p_sample[i] * volume);
+            short* p_sample = (short*)pOutput;
+            ma_uint32 i;
+            for (i = 0; i < framesRead * channels; ++i) {
+                p_sample[i] = (short)(p_sample[i] * current_volume);
             }
             break;
         }
         case ma_format_s24: {
-            uint8_t* p_sample = (uint8_t*)pOutput;
-            for (ma_uint32 i = 0; i < framesRead * channels; ++i) {
-                // Convert 24-bit packed data to 32-bit for volume adjustments then combined for a single 32-bit integer
-                int32_t sample = ((int32_t)p_sample[3 * i] << 8)
-                    | ((int32_t)p_sample[3 * i + 1] << 16)
-                    | ((int32_t)p_sample[3 * i + 2] << 24);
+            unsigned char* p_sample = (unsigned char*)pOutput;
+            ma_uint32 i;
+            for (i = 0; i < framesRead * channels; ++i) {
+                long sample = ((long)p_sample[3 * i] << 8)
+                    | ((long)p_sample[3 * i + 1] << 16)
+                    | ((long)p_sample[3 * i + 2] << 24);
 
-                sample = (int32_t)(sample * volume);
+                sample = (long)(sample * current_volume);
                 
-                // Repacking 24-bit sample
-                p_sample[3 * i] = (uint8_t)(sample >> 8);
-                p_sample[3 * i + 1] = (uint8_t)(sample >> 16);
-                p_sample[3 * i + 2] = (uint8_t)(sample >> 24);
+                p_sample[3 * i] = (unsigned char)(sample >> 8);
+                p_sample[3 * i + 1] = (unsigned char)(sample >> 16);
+                p_sample[3 * i + 2] = (unsigned char)(sample >> 24);
             }
             break;
         }
         case ma_format_s32: {
-            int32_t* p_sample = (int32_t*)pOutput;
-            for (ma_uint32 i = 0; i < framesRead * channels; ++i) {
-                p_sample[i] = (int32_t)(p_sample[i] * volume);
+            long* p_sample = (long*)pOutput;
+            ma_uint32 i;
+            for (i = 0; i < framesRead * channels; ++i) {
+                p_sample[i] = (long)(p_sample[i] * current_volume);
             }
             break;
         }
@@ -64,7 +117,7 @@ void sl_data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_
         }
     }
 }
-
+ 
 void sl_sleep_seconds(int seconds)
 {
 #ifdef _WIN32
@@ -86,30 +139,38 @@ void sl_display_version()
 
 SLAudioDevice* sl_setup_audio_device(const char *file, float volume)
 {
-    SLAudioDevice *device = (SLAudioDevice *)malloc(sizeof(SLAudioDevice));
+    SLAudioDevice* pdevice;
+    const char* format_str;
 
+    pdevice = (SLAudioDevice*)malloc(sizeof(SLAudioDevice));
     
-    device->volume = volume;
+    pdevice->volume = volume;
+    if (pdevice->volume == 1.0f) {
+        pdevice->volume = 0.99f;
+    }
+
+    pdevice->fade = 0;
     
-    device->result = ma_decoder_init_file(file, NULL, &device->decoder);
-    if (device->result != MA_SUCCESS) {
+    pdevice->result = ma_decoder_init_file(file, NULL, &pdevice->decoder);
+    if (pdevice->result != MA_SUCCESS) {
         printf("Failed to initialize decoder.\n");
+        return pdevice;
     }
 
-    device->result = ma_decoder_get_length_in_pcm_frames(&device->decoder, &device->total_frame_count);
-    if (device->result != MA_SUCCESS) {
+    pdevice->result = ma_decoder_get_length_in_pcm_frames(&pdevice->decoder, &pdevice->total_frame_count);
+    if (pdevice->result != MA_SUCCESS) {
         printf("Failed to get length of the audio file.\n");
-        ma_decoder_uninit(&device->decoder);
+        ma_decoder_uninit(&pdevice->decoder);
     }
 
-    device->duration = (float)device->total_frame_count / device->decoder.outputSampleRate;
+    pdevice->duration = (float)pdevice->total_frame_count / pdevice->decoder.outputSampleRate;
 
-    printf("Sample Rate: %d Hz\n", device->decoder.outputSampleRate);
-    printf("Channels: %d\n", device->decoder.outputChannels);
-    printf("Duration: %.2f seconds\n", device->duration);
+    printf("Sample Rate: %d Hz\n", pdevice->decoder.outputSampleRate);
+    printf("Channels: %d\n", pdevice->decoder.outputChannels);
+    printf("Duration: %.2f seconds\n", pdevice->duration);
     
-    const char* format_str = "Unknown";
-    switch (device->decoder.outputFormat) {
+    format_str = "Unknown";
+    switch (pdevice->decoder.outputFormat) {
         case ma_format_f32: format_str = "32-bit floating point"; break;
         case ma_format_s16: format_str = "16-bit signed integer"; break;
         case ma_format_s24: format_str = "24-bit signed integer"; break;
@@ -118,38 +179,38 @@ SLAudioDevice* sl_setup_audio_device(const char *file, float volume)
     
     printf("Format: %s\n", format_str);
 
-    device->device_config                   = ma_device_config_init(ma_device_type_playback);
-    device->device_config.playback.format   = device->decoder.outputFormat;
-    device->device_config.playback.channels = device->decoder.outputChannels;
-    device->device_config.sampleRate        = device->decoder.outputSampleRate;
-    device->device_config.dataCallback      = sl_data_callback;
-    device->device_config.pUserData         = device;
+    pdevice->device_config = ma_device_config_init(ma_device_type_playback);
+    pdevice->device_config.playback.format = pdevice->decoder.outputFormat;
+    pdevice->device_config.playback.channels = pdevice->decoder.outputChannels;
+    pdevice->device_config.sampleRate = pdevice->decoder.outputSampleRate;
+    pdevice->device_config.dataCallback = sl_data_callback;
+    pdevice->device_config.pUserData = pdevice;
 
-    device->result = ma_device_init(NULL, &device->device_config, &device->device);
-    if (device->result != MA_SUCCESS) {
+    pdevice->result = ma_device_init(NULL, &pdevice->device_config, &pdevice->pcm_device);
+    if (pdevice->result != MA_SUCCESS) {
         printf("Failed to initialize playback device.\n");
-        ma_decoder_uninit(&device->decoder);
+        ma_decoder_uninit(&pdevice->decoder);
     }
 
-    return device;
+    return pdevice;
 }
 
-void sl_play(SLAudioDevice *device)
+void sl_play(SLAudioDevice *pdevice)
 {
-    device->result = ma_device_start(&device->device);
-    if (device->result != MA_SUCCESS) {
+    pdevice->result = ma_device_start(&pdevice->pcm_device);
+    if (pdevice->result != MA_SUCCESS) {
         printf("Failed to start playback device.\n");
-        ma_device_uninit(&device->device);
-        ma_decoder_uninit(&device->decoder);
+        ma_device_uninit(&pdevice->pcm_device);
+        ma_decoder_uninit(&pdevice->decoder);
         return;
     }
 
-    sl_sleep_seconds(device->duration);
+    sl_sleep_seconds((int)pdevice->duration);
 }
 
-void sl_free_device(SLAudioDevice *device)
+void sl_free_device(SLAudioDevice *pdevice)
 {
-    ma_device_uninit(&device->device);
-    ma_decoder_uninit(&device->decoder);
-    free(device);
+    ma_device_uninit(&pdevice->pcm_device);
+    ma_decoder_uninit(&pdevice->decoder);
+    free(pdevice);
 }
